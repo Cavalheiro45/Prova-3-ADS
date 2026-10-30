@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prova de Recuperação — Design, Animação e Storytelling</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- html2pdf.js for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Space Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom styled textareas with paper lines background */
+        .lined-textarea {
+            background-attachment: local;
+            background-image: linear-gradient(to bottom, transparent 31px, #e2e8f0 32px);
+            background-size: 100% 32px;
+            line-height: 32px;
+            padding-top: 2px;
+        }
+
+        /* Custom radio check animation */
+        .custom-radio:checked + label {
+            border-color: #4338ca;
+            background-color: #eef2ff;
+            color: #312e81;
+            font-weight: 600;
+        }
+
+        .custom-radio:checked + label .radio-indicator {
+            border-color: #4338ca;
+            background-color: #4338ca;
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Hide PDF render container from screen view */
+        #pdf-render-area {
+            display: none;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            #pdf-render-area { display: block !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen pb-20">
+
+    <!-- Sticky Top Bar / Progress Navigation -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                
+                <!-- School & Exam Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-700 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-brand-700/20">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-base font-bold text-slate-900 leading-tight">Escola Gabriel de Lara</h1>
+                        <p class="text-xs text-slate-500 font-medium">3ª Série B-ADS • Prova de Recuperação</p>
+                    </div>
+                </div>
+
+                <!-- Live Progress & Save Status -->
+                <div class="flex items-center space-x-4 flex-1 max-w-md">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center text-xs font-semibold mb-1">
+                            <span class="text-slate-600 flex items-center gap-1">
+                                <i class="fa-solid fa-list-check text-brand-600"></i> Progresso da Prova
+                            </span>
+                            <span id="progress-text" class="text-brand-700 font-mono">0 / 30 (0%)</span>
+                        </div>
+                        <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                            <div id="progress-bar" class="bg-brand-600 h-full w-0 transition-all duration-300 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="confirmClearDraft()" class="px-3 py-2 text-xs font-semibold text-slate-600 hover:text-red-600 bg-slate-100 hover:bg-red-50 rounded-lg transition-colors border border-slate-200" title="Limpar rascunho">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span class="hidden sm:inline ml-1">Limpar</span>
+                    </button>
+
+                    <button onclick="generatePDF()" class="px-4 py-2 text-xs font-bold text-white bg-brand-700 hover:bg-brand-800 active:scale-95 rounded-lg shadow-md shadow-brand-700/20 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-file-pdf text-sm"></i>
+                        <span>Finalizar e Gerar PDF</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 pt-6">
+
+        <!-- Banner / Instructions Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-brand-900 via-brand-800 to-indigo-900 text-white p-6 sm:p-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-brand-700/50 pb-6 mb-6">
+                    <div>
+                        <span class="px-3 py-1 bg-brand-600/60 text-brand-100 text-xs font-mono font-semibold rounded-full border border-brand-400/30 uppercase tracking-wider">
+                            Avaliação de Recuperação
+                        </span>
+                        <h2 class="text-xl sm:text-2xl font-extrabold mt-2 tracking-tight">Design de Interface, Animação e Storytelling com Dados</h2>
+                        <p class="text-sm text-brand-100/90 mt-1">Data oficial: 30/10/2026 • Professor(a): Coordenação ADS</p>
+                    </div>
+                    <div id="save-badge" class="px-3 py-1.5 bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 text-xs rounded-lg flex items-center gap-2 font-mono">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="save-status-text">Salvamento automático ativo</span>
+                    </div>
+                </div>
+
+                <!-- Student Info Form Inputs -->
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 bg-white/10 backdrop-blur p-4 sm:p-5 rounded-xl border border-white/10">
+                    <div class="sm:col-span-6">
+                        <label class="block text-xs font-semibold text-brand-100 mb-1">Nome Completo do Aluno(a) <span class="text-rose-300">*</span></label>
+                        <input type="text" id="student-name" oninput="saveDraft()" placeholder="Digite seu nome completo..." class="w-full px-3 py-2 bg-white/90 focus:bg-white text-slate-900 rounded-lg text-sm font-medium border-0 focus:ring-2 focus:ring-brand-400 outline-none transition-all placeholder:text-slate-400">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-brand-100 mb-1">Nº Chamada</label>
+                        <input type="text" id="student-number" oninput="saveDraft()" placeholder="Ex: 12" class="w-full px-3 py-2 bg-white/90 focus:bg-white text-slate-900 rounded-lg text-sm font-medium border-0 focus:ring-2 focus:ring-brand-400 outline-none transition-all placeholder:text-slate-400 font-mono">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-brand-100 mb-1">Turma</label>
+                        <input type="text" id="student-class" value="3ª série B-ADS" readonly class="w-full px-3 py-2 bg-white/20 text-white rounded-lg text-sm font-semibold border border-white/20 cursor-not-allowed">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-brand-100 mb-1">Data</label>
+                        <input type="text" id="student-date" value="30/10/2026" oninput="saveDraft()" class="w-full px-3 py-2 bg-white/90 focus:bg-white text-slate-900 rounded-lg text-sm font-medium border-0 focus:ring-2 focus:ring-brand-400 outline-none transition-all font-mono">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rules / Notice -->
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 text-xs text-slate-600 flex flex-wrap gap-y-2 justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-brand-600"></i>
+                    <span>Responda com atenção. O progresso é salvo continuamente. Ao finalizar, você poderá baixar o PDF com as respostas.</span>
+                </div>
+                <div class="font-semibold text-slate-700">
+                    30 Questões • Total: 10,0 pontos por bloco
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Jump Navigation Tabs -->
+        <div class="flex overflow-x-auto gap-2 mb-6 pb-2 no-scrollbar">
+            <a href="#bloco-1" class="px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-sm whitespace-nowrap flex items-center gap-2 transition-all hover:border-brand-300">
+                <span class="w-5 h-5 rounded-md bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-mono">1</span>
+                Bloco 1: Grids & Organização (Q1-10)
+            </a>
+            <a href="#bloco-2" class="px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-sm whitespace-nowrap flex items-center gap-2 transition-all hover:border-brand-300">
+                <span class="w-5 h-5 rounded-md bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-mono">2</span>
+                Bloco 2: Vídeo & Carregamento (Q11-20)
+            </a>
+            <a href="#bloco-3" class="px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl shadow-sm whitespace-nowrap flex items-center gap-2 transition-all hover:border-brand-300">
+                <span class="w-5 h-5 rounded-md bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-mono">3</span>
+                Bloco 3: Dados & Storytelling (Q21-30)
+            </a>
+        </div>
+
+        <!-- Exam Form Content -->
+        <form id="exam-form" onsubmit="event.preventDefault(); flexGeneratePDF();">
+
+            <!-- BLOCO 1 -->
+            <section id="bloco-1" class="space-y-6 mb-12">
+                <div class="bg-gradient-to-r from-slate-900 to-brand-900 text-white px-6 py-4 rounded-2xl shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-mono uppercase tracking-widest text-brand-300 font-semibold">Bloco 1</span>
+                        <h3 class="text-lg font-bold">Organização visual com grids (Questões 1 a 10)</h3>
+                    </div>
+                    <span class="px-3 py-1 bg-white/10 rounded-lg text-xs font-mono text-brand-200 border border-white/10">10,0 pontos</span>
+                </div>
+
+                <div id="container-block-1" class="space-y-6">
+                    <!-- Questions 1-10 populated dynamically -->
+                </div>
+            </section>
+
+            <!-- BLOCO 2 -->
+            <section id="bloco-2" class="space-y-6 mb-12">
+                <div class="bg-gradient-to-r from-slate-900 to-brand-900 text-white px-6 py-4 rounded-2xl shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-mono uppercase tracking-widest text-brand-300 font-semibold">Bloco 2</span>
+                        <h3 class="text-lg font-bold">Vídeo curto de carregamento (Questões 11 a 20)</h3>
+                    </div>
+                    <span class="px-3 py-1 bg-white/10 rounded-lg text-xs font-mono text-brand-200 border border-white/10">10,0 pontos</span>
+                </div>
+
+                <div id="container-block-2" class="space-y-6">
+                    <!-- Questions 11-20 populated dynamically -->
+                </div>
+            </section>
+
+            <!-- BLOCO 3 -->
+            <section id="bloco-3" class="space-y-6 mb-12">
+                <div class="bg-gradient-to-r from-slate-900 to-brand-900 text-white px-6 py-4 rounded-2xl shadow-sm flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-mono uppercase tracking-widest text-brand-300 font-semibold">Bloco 3</span>
+                        <h3 class="text-lg font-bold">Dados e storytelling (Questões 21 a 30)</h3>
+                    </div>
+                    <span class="px-3 py-1 bg-white/10 rounded-lg text-xs font-mono text-brand-200 border border-white/10">10,0 pontos</span>
+                </div>
+
+                <div id="container-block-3" class="space-y-6">
+                    <!-- Questions 21-30 populated dynamically -->
+                </div>
+            </section>
+
+            <!-- Final Submission Banner Card -->
+            <div class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-md text-center space-y-4 my-10">
+                <div class="w-14 h-14 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-2xl mx-auto">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-extrabold text-slate-900">Concluir a Prova de Recuperação</h3>
+                    <p class="text-sm text-slate-600 max-w-lg mx-auto mt-1">
+                        Verifique se você respondeu todas as 30 questões. Ao clicar no botão abaixo, o sistema irá gerar o documento oficial em PDF formatado para envio.
+                    </p>
+                </div>
+                <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <button type="button" onclick="generatePDF()" class="w-full sm:w-auto px-8 py-3.5 bg-brand-700 hover:bg-brand-800 text-white font-bold rounded-xl shadow-lg shadow-brand-700/25 transition-all flex items-center justify-center gap-3 text-base">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>Finalizar e Baixar PDF da Prova</span>
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </main>
+
+    <!-- Modal Toast Alert for Missing Fields -->
+    <div id="toast-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-100 text-center space-y-4 transform transition-all">
+            <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl mx-auto">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h4 id="toast-title" class="text-lg font-bold text-slate-900">Atenção!</h4>
+                <p id="toast-message" class="text-sm text-slate-600 mt-1">Preencha o seu nome completo antes de gerar o documento PDF.</p>
+            </div>
+            <button onclick="closeToast()" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-sm transition-colors">
+                Entendi, voltar à prova
+            </button>
+        </div>
+    </div>
+
+    <!-- Hidden Template Container specifically engineered for rendering clean PDF printable pages -->
+    <div id="pdf-render-area" class="p-8 bg-white text-slate-900 font-sans">
+        <!-- Generated dynamically via JavaScript before download -->
+    </div>
+
+    <script>
+        // DATASET OF ALL EXAM QUESTIONS (1 TO 30)
+        const examQuestions = [
+            // BLOCO 1 (Q1 - Q10)
+            {
+                id: 1, block: 1, pts: "0,2", type: "mc",
+                text: "Em design de interface, o grid (malha) é:",
+                options: [
+                    { key: "a", text: "uma lista de cores e fontes usadas no projeto" },
+                    { key: "b", text: "um conjunto de linhas e colunas que organiza, alinha e distribui os elementos da tela" },
+                    { key: "c", text: "o formato final de exportação do arquivo" },
+                    { key: "d", text: "o nome técnico da imagem de fundo" }
+                ]
+            },
+            {
+                id: 2, block: 1, pts: "0,2", type: "mc",
+                text: "Na folha A4, você desenhou a tela e anotou a medida de cada linha e coluna. O motivo principal dessas anotações é:",
+                options: [
+                    { key: "a", text: "deixar o desenho visualmente mais bonito" },
+                    { key: "b", text: "permitir que outra pessoa (ou você em outro momento) reproduza a mesma organização sem depender da memória" },
+                    { key: "c", text: "substituir o uso de cores na tela" },
+                    { key: "d", text: "cumprir uma formalidade sem efeito prático no resultado" }
+                ]
+            },
+            {
+                id: 3, block: 1, pts: "0,2", type: "mc",
+                text: "Hierarquia visual significa:",
+                options: [
+                    { key: "a", text: "distribuir todos os elementos com o mesmo tamanho e peso, para manter neutralidade" },
+                    { key: "b", text: "organizar os elementos por ordem de importância, usando tamanho, peso, cor, contraste e posição para guiar o olhar" },
+                    { key: "c", text: "colocar obrigatoriamente o logotipo no centro da tela" },
+                    { key: "d", text: "preencher a primeira dobra com o maior número possível de informações" }
+                ]
+            },
+            {
+                id: 4, block: 1, pts: "0,2", type: "mc",
+                text: "Sobre margens e alinhamento dentro de um grid:",
+                options: [
+                    { key: "a", text: "margens são apenas decorativas e o alinhamento só importa em telas grandes" },
+                    { key: "b", text: "as margens delimitam o espaço seguro entre a borda e o conteúdo, e o alinhamento cria eixos comuns que dão ordem e leitura rápida" },
+                    { key: "c", text: "alinhar tudo ao centro é sempre a melhor escolha" },
+                    { key: "d", text: "posicionar elementos fora do grid deixa a tela mais profissional" }
+                ]
+            },
+            {
+                id: 5, block: 1, pts: "0,2", type: "mc",
+                text: "Comparando o grid de um app mobile com o de um site aberto no computador, a diferença mais marcante é:",
+                options: [
+                    { key: "a", text: "o mobile trabalha com poucas colunas (em geral uma) e empilhamento vertical, enquanto o site aproveita a largura horizontal com várias colunas" },
+                    { key: "b", text: "o mobile não utiliza grid" },
+                    { key: "c", text: "o site nunca usa margens" },
+                    { key: "d", text: "a estrutura é idêntica nos dois, mudando apenas a cor" }
+                ]
+            },
+            {
+                id: 6, block: 1, pts: "0,2", type: "match",
+                text: "Relacione cada peça gráfica à característica de organização visual que mais se destaca nela.",
+                col1Text: "(1) Capa de livro — (2) App mobile — (3) Site — (4) Panfleto — (5) Panfleto de evento — (6) Cardápio",
+                col2Items: [
+                    "Grid de uma coluna, com áreas de toque amplas e conteúdo empilhado",
+                    "Grade modular em várias colunas, com blocos de conteúdo e navegação visível",
+                    "Composição com título forte, imagem e créditos, em que o grid sustenta o equilíbrio da capa",
+                    "Colunas e blocos curtos, pensados para leitura rápida com a peça na mão",
+                    "Hierarquia de data, local e atração principal, pensada para ser vista de longe",
+                    "Colunas por seção (entradas, pratos, bebidas), com preços alinhados para leitura rápida"
+                ]
+            },
+            {
+                id: 7, block: 1, pts: "0,2", type: "vf",
+                text: "Julgue as afirmativas com V (verdadeira) ou F (falsa):",
+                statements: [
+                    "Um grid bem definido dispensa a preocupação com hierarquia visual, porque a grade resolve tudo.",
+                    "Anotar as medidas das colunas permite manter a mesma proporção nas outras telas do mesmo projeto.",
+                    "Um elemento desalinhado de todos os eixos do grid costuma parecer desorganizado, mesmo sendo bonito isoladamente."
+                ]
+            },
+            {
+                id: 8, block: 1, pts: "0,6", type: "discursive",
+                text: "Descreva, em etapas, como você montaria no papel o grid da tela inicial de um app mobile. Indique margens, número de colunas, espaço entre colunas (gutter), áreas de respiro e onde ficariam título, imagem e botão principal. Justifique a ordem de importância desses elementos. (5 a 8 linhas)",
+                minLines: 5
+            },
+            {
+                id: 9, block: 1, pts: "0,6", type: "discursive",
+                text: "Escolha duas peças entre site, panfleto de evento e cardápio. Explique duas diferenças de organização visual entre elas, relacionando cada diferença à forma como a peça é lida e ao lugar onde ela é usada.",
+                minLines: 4
+            },
+            {
+                id: 10, block: 1, pts: "0,6", type: "discursive",
+                text: "Considere a seguinte entrega, feita sem grid: título no canto esquerdo, texto encostado na margem, três botões de tamanhos diferentes e desalinhados, imagem cortada pela borda.\na) Aponte três problemas de organização visual.\nb) Reescreva a solução explicando como grid, alinhamento e hierarquia resolvem cada um deles.",
+                minLines: 5
+            },
+
+            // BLOCO 2 (Q11 - Q20)
+            {
+                id: 11, block: 2, pts: "0,2", type: "mc",
+                text: "A principal função de uma tela de carregamento ao abrir um aplicativo é:",
+                options: [
+                    { key: "a", text: "entreter o usuário com efeitos visuais" },
+                    { key: "b", text: "informar que o sistema está processando e dar previsibilidade sobre o tempo de espera" },
+                    { key: "c", text: "esconder o logotipo do aplicativo" },
+                    { key: "d", text: "ocupar o tempo enquanto o app baixa atualizações sem avisar" }
+                ]
+            },
+            {
+                id: 12, block: 2, pts: "0,2", type: "mc",
+                text: "No vídeo, a barra enche enquanto o número da porcentagem sobe. Por que os dois elementos aparecem juntos?",
+                options: [
+                    { key: "a", text: "porque a porcentagem é apenas um enfeite" },
+                    { key: "b", text: "porque a barra comunica o progresso relativo e o número comunica a precisão; juntos reduzem a incerteza de quem espera" },
+                    { key: "c", text: "porque a barra sozinha não é permitida em interfaces" },
+                    { key: "d", text: "porque o número substitui a necessidade de animação" }
+                ]
+            },
+            {
+                id: 13, block: 2, pts: "0,2", type: "mc",
+                text: "Uma animação de carregamento que trava em 99% por vários segundos, mesmo com o aplicativo já pronto, provoca:",
+                options: [
+                    { key: "a", text: "maior confiança, pois demonstra cuidado" },
+                    { key: "b", text: "perda de confiança e sensação de travamento, porque o feedback deixa de corresponder ao estado real do sistema" },
+                    { key: "c", text: "economia de bateria" },
+                    { key: "d", text: "melhora na acessibilidade" }
+                ]
+            },
+            {
+                id: 14, block: 2, pts: "0,2", type: "mc",
+                text: "Em uma animação de entrada, \"movimento com propósito\" quer dizer:",
+                options: [
+                    { key: "a", text: "usar o maior número possível de elementos em movimento ao mesmo tempo" },
+                    { key: "b", text: "cada movimento comunica algo: de onde o conteúdo vem, o que mudou, o que está disponível para tocar" },
+                    { key: "c", text: "animar apenas por estética, sem função" },
+                    { key: "d", text: "eliminar toda transição para não distrair" }
+                ]
+            },
+            {
+                id: 15, block: 2, pts: "0,2", type: "mc",
+                text: "Sobre a relação entre duração da animação e experiência do usuário:",
+                options: [
+                    { key: "a", text: "animações mais longas são sempre melhores, pois mostram mais detalhes" },
+                    { key: "b", text: "a animação deve durar o tempo necessário para comunicar, sem atrasar a chegada ao conteúdo; se o carregamento real demora, é melhor informar do que simular rapidez" },
+                    { key: "c", text: "qualquer animação acima de três segundos é obrigatória em apps" },
+                    { key: "d", text: "o ideal é prolongar a animação para compensar carregamentos lentos" }
+                ]
+            },
+            {
+                id: 16, block: 2, pts: "0,2", type: "match",
+                text: "Relacione cada elemento do vídeo à sua função na interface.",
+                col1Text: "(1) Porcentagem — (2) Barra de progresso — (3) Animação do ícone/logo — (4) Transição para a tela inicial — (5) Texto de status (\"carregando dados...\")",
+                col2Items: [
+                    "Reforça a identidade do app e indica que algo está acontecendo",
+                    "Mostra numericamente quanto falta",
+                    "Sinaliza o fim da espera e a mudança de contexto",
+                    "Mostra o avanço de forma visual e contínua",
+                    "Explica o que o sistema está fazendo, útil em esperas mais longas"
+                ]
+            },
+            {
+                id: 17, block: 2, pts: "0,2", type: "vf",
+                text: "Julgue as afirmativas com V (verdadeira) ou F (falsa):",
+                statements: [
+                    "A animação deve acompanhar o progresso real; se o carregamento termina antes, ela não deve continuar apenas para 'completar'.",
+                    "Uma tela de carregamento bem-feita compensa um aplicativo lento, tornando a espera real mais rápida.",
+                    "Feedback ao usuário é qualquer sinal que informe o estado do sistema: barra, número, texto, mudança de cor, vibração."
+                ]
+            },
+            {
+                id: 18, block: 2, pts: "0,6", type: "discursive",
+                text: "Descreva o roteiro técnico do seu vídeo curto de carregamento: duração total, etapas (abertura, progresso, conclusão), o que aparece em cada etapa e por que você escolheu essa sequência. (5 a 8 linhas)",
+                minLines: 5
+            },
+            {
+                id: 19, block: 2, pts: "0,6", type: "discursive",
+                text: "Um usuário abre o aplicativo em conexão lenta. A barra enche até 80%, volta para 20% e depois fica parada por 6 segundos.\na) Identifique dois problemas de usabilidade dessa situação.\nb) Proponha duas correções, mantendo o uso da porcentagem e da barra.",
+                minLines: 5
+            },
+            {
+                id: 20, block: 2, pts: "0,6", type: "discursive",
+                text: "Explique como os elementos do vídeo (porcentagem, barra, animação e transição) influenciam a percepção de qualidade do aplicativo. Em seguida, liste três critérios que você usaria para afirmar que o vídeo cumpriu seu objetivo.",
+                minLines: 5
+            },
+
+            // BLOCO 3 (Q21 - Q30)
+            {
+                id: 21, block: 3, pts: "0,2", type: "mc",
+                text: "\"Storytelling com dados\" significa:",
+                options: [
+                    { key: "a", text: "inventar números para tornar a apresentação mais impactante" },
+                    { key: "b", text: "organizar dados reais em uma narrativa com contexto, achado e conclusão, para que o público entenda e possa agir" },
+                    { key: "c", text: "usar exclusivamente gráficos em 3D" },
+                    { key: "d", text: "ler a planilha completa em voz alta durante a apresentação" }
+                ]
+            },
+            {
+                id: 22, block: 3, pts: "0,2", type: "mc",
+                text: "Para comparar a quantidade de alunos por turma, o gráfico mais adequado é:",
+                options: [
+                    { key: "a", text: "gráfico de barras" },
+                    { key: "b", text: "gráfico de linhas" },
+                    { key: "c", text: "gráfico de pizza com 12 categorias" },
+                    { key: "d", text: "mapa geográfico" }
+                ]
+            },
+            {
+                id: 23, block: 3, pts: "0,2", type: "mc",
+                text: "Um gráfico de barras com o eixo vertical começar em 80 (em vez de 0), usado para destacar uma diferença de 2 unidades, provoca:",
+                options: [
+                    { key: "a", text: "leitura honesta, pois revela o detalhe" },
+                    { key: "b", text: "exagero visual da diferença, levando o público a superestimar o contraste entre os valores" },
+                    { key: "c", text: "melhora da legibilidade sem efeito na interpretação" },
+                    { key: "d", text: "um problema apenas estético, sem consequência na leitura" }
+                ]
+            },
+            {
+                id: 24, block: 3, pts: "0,2", type: "mc",
+                text: "O \"objetivo dos dados\" em uma apresentação corresponde a:",
+                options: [
+                    { key: "a", text: "listar todos os números coletados, um por um" },
+                    { key: "b", text: "a mensagem central que o público deve levar: o que os dados mostram e qual decisão ou reflexão eles sustentam" },
+                    { key: "c", text: "o tamanho do arquivo da planilha" },
+                    { key: "d", text: "a quantidade de slides utilizada" }
+                ]
+            },
+            {
+                id: 25, block: 3, pts: "0,2", type: "mc",
+                text: "Uma apresentação oral de 3 minutos com storytelling costuma seguir esta estrutura:",
+                options: [
+                    { key: "a", text: "todos os dados primeiro, sem conclusão" },
+                    { key: "b", text: "contexto e pergunta → dado/gráfico que responde à pergunta → conclusão e implicação (o que fazer com isso)" },
+                    { key: "c", text: "leitura integral da tabela de dados" },
+                    { key: "d", text: "começar pela conclusão, sem apresentar dados" }
+                ]
+            },
+            {
+                id: 26, block: 3, pts: "0,2", type: "vf",
+                text: "Julgue as afirmativas com V (verdadeira) ou F (falsa):",
+                statements: [
+                    "O título de um gráfico deve dizer o que ele mostra, e não apenas o nome das variáveis.",
+                    "Quanto mais cores e efeitos o gráfico tiver, mais fácil fica a leitura.",
+                    "A mesma base de dados pode sustentar narrativas diferentes conforme o objetivo de quem apresenta, desde que os dados não sejam distorcidos."
+                ]
+            },
+            {
+                id: 27, block: 3, pts: "0,6", type: "discursive",
+                text: "Descreva o conjunto de dados escolhido pelo seu grupo: de onde veio, quantas variáveis tinha e qual pergunta vocês queriam responder. Justifique o tipo de gráfico escolhido e cite uma alternativa descartada, explicando por que foi descartada.",
+                minLines: 5
+            },
+            {
+                id: 28, block: 3, pts: "0,6", type: "discursive",
+                text: "Considere os dados hipotéticos de tempo médio diário de uso do celular por faixa etária: 15–17 anos: 6,2 h; 18–24: 5,4 h; 25–34: 4,1 h; 35–44: 3,0 h; 45+: 2,2 h.\na) Escreva a narrativa em três partes: contexto, achado principal e conclusão/ação.\nb) Indique o gráfico que você usaria e o título que daria a ele.",
+                minLines: 5
+            },
+            {
+                id: 29, block: 3, pts: "0,6", type: "discursive",
+                text: "Analise o gráfico descrito: pizza com 9 fatias, sem legenda, cores muito parecidas, título \"Dados\", e três fatias que somam 61% sem qualquer indicação.\na) Aponte três problemas de construção.\nb) Reescreva as correções necessárias (tipo de gráfico, legenda, título e tratamento dos dados).",
+                minLines: 5
+            },
+            {
+                id: 30, block: 3, pts: "0,6", type: "discursive",
+                text: "Você tem 3 minutos para apresentar a história dos seus dados. Descreva o roteiro da fala (abertura, desenvolvimento e fechamento), o que será exibido na tela em cada momento e como você evitaria dois riscos:\na) ler o gráfico em voz alta;\nb) forçar uma conclusão que os dados não sustentam.",
+                minLines: 6
+            }
+        ];
+
+        // RENDER QUESTIONS TO FORM
+        function renderExam() {
+            const containers = {
+                1: document.getElementById('container-block-1'),
+                2: document.getElementById('container-block-2'),
+                3: document.getElementById('container-block-3')
+            };
+
+            examQuestions.forEach(q => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm transition-all hover:border-slate-300";
+                card.id = `question-card-${q.id}`;
+
+                let inputHTML = '';
+
+                // Multiple Choice
+                if (q.type === 'mc') {
+                    inputHTML = `
+                        <div class="space-y-2 mt-4">
+                            ${q.options.map(opt => `
+                                <div class="relative flex items-center">
+                                    <input type="radio" name="q_${q.id}" id="q_${q.id}_${opt.key}" value="${opt.key}" onchange="onInputChange()" class="custom-radio sr-only">
+                                    <label for="q_${q.id}_${opt.key}" class="w-full p-3 sm:px-4 text-xs sm:text-sm text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer transition-all flex items-start gap-3">
+                                        <span class="radio-indicator w-4 h-4 rounded-full border border-slate-400 mt-0.5 flex-shrink-0 transition-all"></span>
+                                        <span class="font-bold text-slate-900">${opt.key})</span>
+                                        <span class="leading-relaxed">${opt.text}</span>
+                                    </label>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                // Matching
+                else if (q.type === 'match') {
+                    inputHTML = `
+                        <div class="mt-4 space-y-4">
+                            <div class="p-3 bg-brand-50/60 rounded-xl border border-brand-100 text-xs text-brand-900 leading-relaxed font-medium">
+                                <span class="font-bold block mb-1 text-brand-800">Opções da Coluna 1:</span>
+                                ${q.col1Text}
+                            </div>
+                            <div class="space-y-3">
+                                ${q.col2Items.map((item, idx) => `
+                                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                        <div class="flex items-center gap-2 flex-shrink-0">
+                                            <span class="text-xs font-bold text-slate-500">Item ${idx+1}:</span>
+                                            <select name="q_${q.id}_m${idx}" onchange="onInputChange()" class="px-3 py-1.5 bg-white border border-slate-300 text-slate-800 text-xs font-bold rounded-lg focus:ring-2 focus:ring-brand-600 outline-none">
+                                                <option value="">Selecione...</option>
+                                                <option value="1">(1) Capa de livro</option>
+                                                <option value="2">(2) App mobile</option>
+                                                <option value="3">(3) Site</option>
+                                                <option value="4">(4) Panfleto</option>
+                                                <option value="5">(5) Panfleto de evento</option>
+                                                <option value="6">(6) Cardápio</option>
+                                            </select>
+                                        </div>
+                                        <span class="text-xs text-slate-700 leading-normal pl-1">${item}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                // True / False
+                else if (q.type === 'vf') {
+                    inputHTML = `
+                        <div class="mt-4 space-y-3">
+                            ${q.statements.map((stmt, idx) => `
+                                <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <span class="text-xs sm:text-sm text-slate-700 leading-relaxed">${stmt}</span>
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="q_${q.id}_stmt_${idx}" value="V" onchange="onInputChange()" class="peer sr-only">
+                                            <span class="px-3 py-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-300 rounded-lg peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition-all inline-block">V</span>
+                                        </label>
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="q_${q.id}_stmt_${idx}" value="F" onchange="onInputChange()" class="peer sr-only">
+                                            <span class="px-3 py-1.5 text-xs font-bold text-slate-600 bg-white border border-slate-300 rounded-lg peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 transition-all inline-block">F</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                // Discursive
+                else if (q.type === 'discursive') {
+                    inputHTML = `
+                        <div class="mt-4 space-y-2">
+                            <div class="relative">
+                                <textarea id="q_${q.id}_text" name="q_${q.id}" oninput="updateTextareaInfo(${q.id}); onInputChange();" rows="5" placeholder="Escreva sua resposta detalhada aqui..." class="lined-textarea w-full p-3.5 bg-slate-50/50 focus:bg-white text-slate-800 text-sm rounded-xl border border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all resize-y"></textarea>
+                            </div>
+                            <div class="flex justify-between items-center text-[11px] text-slate-500 px-1 font-mono">
+                                <span>Estimativa: <strong id="q_${q.id}_lines" class="text-slate-700">0</strong> linhas</span>
+                                <span id="q_${q.id}_chars">0 caracteres</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-lg bg-brand-100 text-brand-800 flex items-center justify-center font-bold text-xs font-mono">
+                                Q${q.id}
+                            </span>
+                            <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded-md border border-slate-200">
+                                ${q.pts} Ponto${q.pts === '0,2' ? '' : 's'}
+                            </span>
+                        </div>
+                        <span id="q_${q.id}_status" class="text-xs font-semibold text-slate-400 flex items-center gap-1">
+                            <i class="fa-regular fa-circle"></i> Pendente
+                        </span>
+                    </div>
+
+                    <p class="mt-3 text-sm sm:text-base font-semibold text-slate-900 leading-snug whitespace-pre-line">
+                        ${q.text}
+                    </p>
+
+                    ${inputHTML}
+                `;
+
+                containers[q.block].appendChild(card);
+            });
+        }
+
+        // TEXTAREA METRICS TRACKER
+        function updateTextareaInfo(id) {
+            const textarea = document.getElementById(`q_${id}_text`);
+            if (!textarea) return;
+
+            const text = textarea.value;
+            const chars = text.length;
+            const lines = text ? text.split('\n').length : 0;
+
+            const charsEl = document.getElementById(`q_${id}_chars`);
+            const linesEl = document.getElementById(`q_${id}_lines`);
+
+            if (charsEl) charsEl.innerText = `${chars} caractere${chars === 1 ? '' : 's'}`;
+            if (linesEl) linesEl.innerText = `${lines}`;
+        }
+
+        // INPUT EVENT LISTENER & PROGRESS CALCULATOR
+        function onInputChange() {
+            saveDraft();
+            calculateProgress();
+        }
+
+        function calculateProgress() {
+            let answeredCount = 0;
+
+            examQuestions.forEach(q => {
+                let isAnswered = false;
+
+                if (q.type === 'mc') {
+                    const selected = document.querySelector(`input[name="q_${q.id}"]:checked`);
+                    if (selected) isAnswered = true;
+                } 
+                else if (q.type === 'match') {
+                    let filledAll = true;
+                    q.col2Items.forEach((_, idx) => {
+                        const sel = document.querySelector(`select[name="q_${q.id}_m${idx}"]`);
+                        if (!sel || !sel.value) filledAll = false;
+                    });
+                    if (filledAll) isAnswered = true;
+                }
+                else if (q.type === 'vf') {
+                    let filledAll = true;
+                    q.statements.forEach((_, idx) => {
+                        const rad = document.querySelector(`input[name="q_${q.id}_stmt_${idx}"]:checked`);
+                        if (!rad) filledAll = false;
+                    });
+                    if (filledAll) isAnswered = true;
+                }
+                else if (q.type === 'discursive') {
+                    const textEl = document.getElementById(`q_${q.id}_text`);
+                    if (textEl && textEl.value.trim().length >= 10) {
+                        isAnswered = true;
+                    }
+                }
+
+                // Update Status Indicator per question card
+                const statusEl = document.getElementById(`q_${q.id}_status`);
+                const cardEl = document.getElementById(`question-card-${q.id}`);
+
+                if (isAnswered) {
+                    answeredCount++;
+                    if (statusEl) {
+                        statusEl.className = "text-xs font-semibold text-emerald-600 flex items-center gap-1";
+                        statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Respondida`;
+                    }
+                    if (cardEl) cardEl.classList.add('border-brand-200');
+                } else {
+                    if (statusEl) {
+                        statusEl.className = "text-xs font-semibold text-slate-400 flex items-center gap-1";
+                        statusEl.innerHTML = `<i class="fa-regular fa-circle"></i> Pendente`;
+                    }
+                    if (cardEl) cardEl.classList.remove('border-brand-200');
+                }
+            });
+
+            // Update Progress Bar Header
+            const percentage = Math.round((answeredCount / 30) * 100);
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+
+            if (progressBar) progressBar.style.width = `${percentage}%`;
+            if (progressText) progressText.innerText = `${answeredCount} / 30 (${percentage}%)`;
+        }
+
+        // SAVE AND LOAD DRAFT FROM LOCALSTORAGE
+        function saveDraft() {
+            const draft = {
+                studentName: document.getElementById('student-name').value,
+                studentNumber: document.getElementById('student-number').value,
+                studentDate: document.getElementById('student-date').value,
+                answers: {}
+            };
+
+            examQuestions.forEach(q => {
+                if (q.type === 'mc') {
+                    const sel = document.querySelector(`input[name="q_${q.id}"]:checked`);
+                    if (sel) draft.answers[`q_${q.id}`] = sel.value;
+                } 
+                else if (q.type === 'match') {
+                    q.col2Items.forEach((_, idx) => {
+                        const sel = document.querySelector(`select[name="q_${q.id}_m${idx}"]`);
+                        if (sel) draft.answers[`q_${q.id}_m${idx}`] = sel.value;
+                    });
+                } 
+                else if (q.type === 'vf') {
+                    q.statements.forEach((_, idx) => {
+                        const rad = document.querySelector(`input[name="q_${q.id}_stmt_${idx}"]:checked`);
+                        if (rad) draft.answers[`q_${q.id}_stmt_${idx}`] = rad.value;
+                    });
+                } 
+                else if (q.type === 'discursive') {
+                    const text = document.getElementById(`q_${q.id}_text`);
+                    if (text) draft.answers[`q_${q.id}_text`] = text.value;
+                }
+            });
+
+            localStorage.setItem('prova_recuperacao_ads_draft', JSON.stringify(draft));
+
+            // Save Indicator status update
+            const statusText = document.getElementById('save-status-text');
+            if (statusText) {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                statusText.innerText = `Salvo às ${timeStr}`;
+            }
+        }
+
+        function loadDraft() {
+            const raw = localStorage.getItem('prova_recuperacao_ads_draft');
+            if (!raw) return;
+
+            try {
+                const draft = JSON.parse(raw);
+                if (draft.studentName) document.getElementById('student-name').value = draft.studentName;
+                if (draft.studentNumber) document.getElementById('student-number').value = draft.studentNumber;
+                if (draft.studentDate) document.getElementById('student-date').value = draft.studentDate;
+
+                if (draft.answers) {
+                    Object.keys(draft.answers).forEach(key => {
+                        const val = draft.answers[key];
+                        
+                        // Radios
+                        const radio = document.querySelector(`input[name="${key}"][value="${val}"]`);
+                        if (radio) radio.checked = true;
+
+                        // Selects
+                        const select = document.querySelector(`select[name="${key}"]`);
+                        if (select) select.value = val;
+
+                        // Textareas
+                        const textarea = document.getElementById(key);
+                        if (textarea) {
+                            textarea.value = val;
+                            const idNum = key.replace('q_', '').replace('_text', '');
+                            updateTextareaInfo(idNum);
+                        }
+                    });
+                }
+
+                calculateProgress();
+            } catch (e) {
+                console.error("Erro ao carregar rascunho salvo:", e);
+            }
+        }
+
+        function confirmClearDraft() {
+            if (confirm("Tem certeza de que deseja limpar todas as respostas digitadas? Esta ação não poderá ser desfeita.")) {
+                localStorage.removeItem('prova_recuperacao_ads_draft');
+                location.reload();
+            }
+        }
+
+        // TOAST ALERT MODAL
+        function showToast(title, msg) {
+            document.getElementById('toast-title').innerText = title;
+            document.getElementById('toast-message').innerText = msg;
+            document.getElementById('toast-modal').classList.remove('hidden');
+        }
+
+        function closeToast() {
+            document.getElementById('toast-modal').classList.add('hidden');
+        }
+
+        // PDF GENERATION ENGINE
+        function generatePDF() {
+            const studentName = document.getElementById('student-name').value.trim();
+
+            if (!studentName) {
+                showToast("Nome Não Preenchido", "Por favor, informe seu Nome Completo no cabeçalho antes de gerar o PDF da prova.");
+                document.getElementById('student-name').focus();
+                return;
+            }
+
+            // Build Printable Container HTML Structure
+            const pdfContainer = document.getElementById('pdf-render-area');
+            const studentNum = document.getElementById('student-number').value.trim() || '---';
+            const studentDate = document.getElementById('student-date').value.trim() || '30/10/2026';
+
+            let pdfHTML = `
+                <!-- Official Print Header -->
+                <div style="border-bottom: 2px solid #1e293b; padding-bottom: 12px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <h1 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0;">ESCOLA GABRIEL DE LARA</h1>
+                            <p style="font-size: 12px; font-weight: 700; color: #475569; margin: 2px 0 0 0;">3ª Série B-ADS — Avaliação de Recuperação</p>
+                            <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0;">Design de Interface, Animação e Storytelling com Dados</p>
+                        </div>
+                        <div style="text-align: right; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; background-color: #f8fafc;">
+                            <div style="font-size: 10px; text-transform: uppercase; font-weight: bold; color: #64748b;">Nota Final</div>
+                            <div style="font-size: 16px; font-weight: bold; color: #0f172a;">[ &nbsp; &nbsp; &nbsp; &nbsp; / 10,0 ]</div>
+                        </div>
+                    </div>
+
+                    <!-- Student Details Table -->
+                    <table style="width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 11px; background-color: #f8fafc; border: 1px solid #e2e8f0;">
+                        <tr>
+                            <td style="padding: 6px 10px; border: 1px solid #cbd5e1; width: 50%;"><strong>Aluno(a):</strong> ${studentName}</td>
+                            <td style="padding: 6px 10px; border: 1px solid #cbd5e1; width: 15%;"><strong>Nº:</strong> ${studentNum}</td>
+                            <td style="padding: 6px 10px; border: 1px solid #cbd5e1; width: 20%;"><strong>Turma:</strong> 3ª B-ADS</td>
+                            <td style="padding: 6px 10px; border: 1px solid #cbd5e1; width: 15%;"><strong>Data:</strong> ${studentDate}</td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+
+            // Append Block Questions with Student Answers
+            [1, 2, 3].forEach(blockNum => {
+                const blockTitles = {
+                    1: "Bloco 1 — Organização visual com grids",
+                    2: "Bloco 2 — Vídeo curto de carregamento",
+                    3: "Bloco 3 — Dados e storytelling"
+                };
+
+                pdfHTML += `
+                    <div style="background-color: #0f172a; color: #ffffff; padding: 6px 10px; font-size: 12px; font-weight: bold; margin-top: 16px; margin-bottom: 10px; border-radius: 4px;">
+                        ${blockTitles[blockNum]}
+                    </div>
+                `;
+
+                const blockQuestions = examQuestions.filter(q => q.block === blockNum);
+
+                blockQuestions.forEach(q => {
+                    pdfHTML += `<div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px id-dot #e2e8f0; page-break-inside: avoid;">`;
+                    pdfHTML += `<p style="font-size: 11px; font-weight: bold; color: #0f172a; margin: 0 0 4px 0;">Q${q.id} (${q.pts} pts) — ${q.text}</p>`;
+
+                    if (q.type === 'mc') {
+                        const sel = document.querySelector(`input[name="q_${q.id}"]:checked`);
+                        const chosenKey = sel ? sel.value : null;
+
+                        pdfHTML += `<div style="margin-left: 8px; font-size: 10px; color: #334155;">`;
+                        q.options.forEach(opt => {
+                            const isSelected = opt.key === chosenKey;
+                            pdfHTML += `
+                                <div style="margin-bottom: 2px; ${isSelected ? 'font-weight: bold; color: #1e3a8a; background-color: #eff6ff; padding: 2px 4px; border-radius: 3px;' : ''}">
+                                    [ ${isSelected ? 'X' : '&nbsp; '} ] ${opt.key}) ${opt.text}
+                                </div>
+                            `;
+                        });
+                        pdfHTML += `</div>`;
+                    }
+                    else if (q.type === 'match') {
+                        pdfHTML += `<div style="margin-left: 8px; font-size: 10px; color: #334155;">`;
+                        q.col2Items.forEach((item, idx) => {
+                            const sel = document.querySelector(`select[name="q_${q.id}_m${idx}"]`);
+                            const val = sel && sel.value ? `(${sel.value})` : '[Não respondida]';
+                            pdfHTML += `
+                                <div style="margin-bottom: 2px;">
+                                    <strong style="color: #1e3a8a;">Item ${idx+1} ${val}:</strong> ${item}
+                                </div>
+                            `;
+                        });
+                        pdfHTML += `</div>`;
+                    }
+                    else if (q.type === 'vf') {
+                        pdfHTML += `<div style="margin-left: 8px; font-size: 10px; color: #334155;">`;
+                        q.statements.forEach((stmt, idx) => {
+                            const rad = document.querySelector(`input[name="q_${q.id}_stmt_${idx}"]:checked`);
+                            const val = rad ? rad.value : ' ';
+                            pdfHTML += `
+                                <div style="margin-bottom: 2px;">
+                                    <strong>( ${val} )</strong> ${stmt}
+                                </div>
+                            `;
+                        });
+                        pdfHTML += `</div>`;
+                    }
+                    else if (q.type === 'discursive') {
+                        const textEl = document.getElementById(`q_${q.id}_text`);
+                        const val = textEl && textEl.value.trim() ? textEl.value.trim() : '(Nenhuma resposta informada)';
+
+                        pdfHTML += `
+                            <div style="margin-top: 4px; padding: 8px 10px; background-color: #f8fafc; border-left: 3px solid #3b82f6; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; font-size: 10px; line-height: 1.5; color: #1e293b; white-space: pre-wrap; font-family: sans-serif;">
+                                ${val}
+                            </div>
+                        `;
+                    }
+
+                    pdfHTML += `</div>`;
+                });
+            });
+
+            // Signatures Footer
+            pdfHTML += `
+                <div style="margin-top: 24px; pt-12; border-top: 1px solid #cbd5e1; page-break-inside: avoid;">
+                    <table style="width: 100%; margin-top: 20px; font-size: 10px; text-align: center;">
+                        <tr>
+                            <td style="width: 50%; padding: 0 20px;">
+                                <div style="border-bottom: 1px solid #0f172a; margin-bottom: 4px;"></div>
+                                Assinatura do Aluno(a)
+                            </td>
+                            <td style="width: 50%; padding: 0 20px;">
+                                <div style="border-bottom: 1px solid #0f172a; margin-bottom: 4px;"></div>
+                                Assinatura do Professor(a) / Avaliador
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+
+            pdfContainer.innerHTML = pdfHTML;
+
+            // Generate File Name
+            const sanitizeName = studentName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "_");
+            const fileName = `Prova_Recuperacao_${sanitizeName}.pdf`;
+
+            // Configuration for html2pdf
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: fileName,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            // Render PDF and trigger download
+            pdfContainer.style.display = 'block';
+            
+            html2pdf().set(opt).from(pdfContainer).save().then(() => {
+                pdfContainer.style.display = 'none';
+            }).catch(err => {
+                console.error("Erro ao gerar PDF:", err);
+                pdfContainer.style.display = 'none';
+                alert("Ocorreu um erro ao gerar o arquivo PDF. Tente novamente ou imprima a tela.");
+            });
+        }
+
+        // INITIALIZE ON LOAD
+        window.onload = function() {
+            renderExam();
+            loadDraft();
+        };
+    </script>
+</body>
+</html>
